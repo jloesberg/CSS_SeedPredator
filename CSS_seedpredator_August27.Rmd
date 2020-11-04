@@ -1,0 +1,348 @@
+---
+title: "CSS_seedpredator_August27"
+author: "Jenna Loesberg"
+date: "8/27/2020"
+output: html_document
+---
+
+```{r, warning=FALSE,echo=FALSE, include = FALSE, message = FALSE}
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(wesanderson))
+suppressPackageStartupMessages(library(gt))
+suppressPackageStartupMessages(library(webshot))
+pal <- wes_palettes$IsleofDogs1
+fox <- wes_palettes$FantasticFox1
+cav <- wes_palettes$Cavalcanti1
+theme_set(theme_classic())
+seed <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_counts_July17.csv") #this has problem sites taken out
+species <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_data_species.csv") #without broken sites
+#creating info to add to final data
+info <- data.frame(species = c("salvia", "encelia", "brassica", "bromus"),
+                   size = c("Small", "Large", "Small", "Large"),
+                   origin = c("Native", "Native", "Invasive","Invasive"))
+```
+
+Which sites to drop:
+- sites where more than 5 seeds were missing from Exclusion
+- treatment sites where less than 10 or more than 70 seeds taken
+- treatment sites where seeds taken are less than 10 different from Exclusion
+
+Taking out sites:
+
+```{r}
+exc <- seed %>% 
+   filter(Treatment == "C") %>% 
+  filter(Total_eaten <=4)
+GPS_C <- exc %>% 
+  select(GPS_code)
+seed3 <- semi_join(seed, GPS_C) #only sites withe <= 4 seeds missing from control
+
+BR <- seed3 %>% 
+  filter(Treatment == "BR+") %>% 
+  filter(Total_eaten  %in% (10:70)) #BR only sites with seed eaten no. between 10 and 70
+
+A <- seed3 %>% 
+  filter(Treatment == "A+") %>% 
+  filter(Total_eaten  %in% (10:70))
+ABR <- rbind(BR, A)
+
+
+# do any of these sites have <10 differnece with control?
+GPS <- ABR %>% 
+  select(GPS_code) #these are the sites that we need control numbers for 
+
+GPS <- semi_join(exc, GPS) #control sites for each site that meet criteria
+
+ABR <- rbind(GPS, ABR)
+
+#one site has a too small seed difference between C and trt:
+
+ABR <- ABR %>% 
+  filter(GPS_code != "JL_Feb15_S2") %>% 
+  arrange(GPS_code, Treatment)
+#ABR has all of the sites that we're including!
+
+Global_final <- ABR %>% 
+  filter(Treatment != "C")
+
+#do those 6 sites mean anything?
+# unclick these if you want to include them!!
+Global_final <- Global_final %>% 
+  filter(GPS_code != "May22_S2") %>% 
+  filter(GPS_code != "Nov5_S4") %>% 
+  filter(GPS_code != "Oct10_S1") %>% 
+  filter(GPS_code != "Sep17_S4") %>% 
+  filter(GPS_code != "Ap23_S2") %>% 
+  filter(GPS_code != "Ap23+S4")
+
+
+```
+
+
+creating Manly alpha indices:
+```{r}
+Global_final["prey"] <- 20 #starting amount  = 20
+Global_final <- Global_final %>% 
+  mutate(salv.pro = salvia.left/prey, #proportion of starting amount
+         enc.pro = encelia_left/prey,
+         brom.pro = bromus_left/prey,
+         bras.pro = brassica_left/prey)
+#add small vlaue to zeros to take log:
+Global_final$salv.pro[Global_final$salv.pro == 0] <- 0.001
+Global_final$enc.pro[Global_final$enc.pro == 0] <- 0.001
+Global_final$brom.pro[Global_final$brom.pro == 0] <- 0.001
+Global_final$bras.pro[Global_final$bras.pro == 0] <- 0.001
+
+Global_final <- Global_final %>% 
+  mutate(salvia = log(salv.pro)/(log(salv.pro)+log(enc.pro)+log(brom.pro)+log(bras.pro)), #manly calc
+         encelia = log(enc.pro)/(log(salv.pro)+log(enc.pro)+log(brom.pro)+log(bras.pro)),
+         bromus = log(brom.pro)/(log(salv.pro)+log(enc.pro)+log(brom.pro)+log(bras.pro)),
+         brassica = log(bras.pro)/(log(salv.pro)+log(enc.pro)+log(brom.pro)+log(bras.pro)))
+
+#here I will split it up into A, BR and global
+
+A_final <- Global_final %>% 
+  filter(Treatment == "A+")
+BR_final <- Global_final %>% 
+  filter(Treatment == "BR+")
+```
+
+This is in wide format, need to switch to long
+
+```{r}
+BR_final <- BR_final %>%
+  select(GPS_code, salvia, encelia, bromus, brassica) %>% 
+  pivot_longer(cols = c(salvia:brassica), names_to = "species", values_to = "index")
+A_final <- A_final %>% 
+  select(GPS_code, salvia, encelia, bromus, brassica) %>% 
+  pivot_longer(cols = c(salvia:brassica), names_to = "species", values_to = "index")
+Global_final <- Global_final %>% 
+  select(Treatment, GPS_code, salvia, encelia, bromus, brassica) %>% 
+  pivot_longer(cols = c(salvia:brassica), names_to = "species", values_to = "index")
+```
+
+Does Bormus differ from 0.25? yep
+```{r}
+bromus <- Global_final %>% 
+  filter(species == "bromus") %>% 
+  select(index)
+t.test(bromus, mu = 0.25)
+```
+
+
+Get all of the stats:
+```{r}
+BR_sum <- BR_final %>% 
+  group_by(species) %>% 
+  summarize(mean = mean(index), sd = sd(index), n = n(), se = sd/sqrt(n))
+Global_sum <- Global_final %>% 
+  group_by(species) %>% 
+  summarize(mean = mean(index), 
+            sd = sd(index), 
+            n = n(), 
+            se = sd/sqrt(n),
+            lower.ci = mean-1.96*sd/sqrt(n),
+            upper.ci = mean+1.96*sd/sqrt(n))
+
+
+A_sum <- A_final %>% 
+  group_by(species) %>% 
+  summarize(mean = mean(index), sd = sd(index), n = n(), se = sd/sqrt(n))
+
+Global_sum <- left_join(Global_sum, info, by = "species")
+Global_sum$species[Global_sum$species == "brassica"] <- "Brassica"
+Global_sum$species[Global_sum$species == "bromus"] <- "Bromus"
+Global_sum$species[Global_sum$species == "encelia"] <- "Encelia"
+Global_sum$species[Global_sum$species == "salvia"] <- "Salvia"
+
+```
+
+Global plot:
+```{r}
+Global_sum %>% 
+  mutate(species = as.factor(species),
+         size = as.factor(size)) %>% 
+  ggplot(aes(x = factor(species, levels = c("Brassica","Bromus","Salvia", "Encelia")), y = mean))+
+  geom_col(aes(fill = size), width = .95, color = "black")+
+  #geom_point(data = Global_final, aes(species, index))+
+  scale_fill_manual(values=c("#D9D0D3", "#8D8680"), guide = guide_legend(reverse=TRUE))+
+  geom_hline(aes(linetype = "Prefernce Threshold"), yintercept=0.25,linetype="dashed", color = "black", size = .8)+
+  #scale_linetype_manual(name = "", values = c(1, 1), guide = guide_legend(override.aes = "black"))+
+  geom_errorbar(aes(ymin = lower.ci, ymax = upper.ci), width = 0.2)+
+  expand_limits(y = c(0, 1))+
+  labs(y= "Manly-\u03B1 Preference Index", title = "Global preference (n = 50, no ID sites taken out), 95% CI", x = "", fill = "Seed Size")+
+  facet_grid(.~origin, scales = "free", switch = "x", space = "free")+
+   theme(strip.placement = "outside", 
+         legend.position = c(0.87, 0.87),
+         axis.text.x = element_text(face = "italic"))
+#ggsave("global_manly_withoutsites_Sep10.png", width = 4, height = 5)
+```
+
+
+
+Are the confidence intervals I calculated the same as if I used a one sample t-test?
+```{r}
+bras <- Global_final %>% 
+  filter(species == "brassica") %>% 
+  select(index)
+t.test(bras, mu = 0.25)
+
+```
+Yes, they're the same!
+
+
+```{r}
+A_sum %>% 
+  ggplot(aes(species, mean))+
+  geom_col()+
+  geom_hline(yintercept=0.25,linetype="dashed", color = "red")+
+  geom_errorbar(aes(ymin = mean - se, ymax = mean+se))+
+  expand_limits(y = c(0, 1))+
+  labs(y= "Manly Index", title = "Ant preference (n = 5)")
+#ggsave("ant_manly_Aug18.png", width = 10, height = 7)
+
+BR_sum %>% 
+  ggplot(aes(species, mean))+
+  geom_col()+
+  geom_hline(yintercept=0.25,linetype="dashed", color = "red")+
+  geom_errorbar(aes(ymin = mean - se, ymax = mean+se))+
+  expand_limits(y = c(0, 1))+
+  labs(y= "Manly Index", title = "BR preference (n = 50)")
+#ggsave("BR_manly_Aug18.png", width = 10, height = 7)
+```
+
+```{r}
+site_species <- species %>% 
+  select(c(Run, GPS_code, Site, Sp_ate))
+
+site_species <- left_join(Global_final, site_species, by = "GPS_code")
+site_species$Sp_ate <- ifelse(site_species$Treatment == "A+", "ant", site_species$Sp_ate)
+```
+
+species specific plot:
+try dot plot next
+
+```{r}
+labels <- c(ant = "Ant", CA_Towee = "CA Towhee", GS = "Ground Squirrel", mixed_bird = "Multiple Bird", mixed_mammal = "Multiple Mammal", multipred = "Multiple Taxa", none = "No Visits", scrub_jay = "Scrub Jay", Stellar_Jay = "Stellar Jay", WC_sparrow = "WC Sparrow", woodrat = "Woodrat")
+
+site_species <- site_species %>% 
+  filter(Sp_ate != "none") %>%
+  mutate(Sp_ate = as.factor(Sp_ate),
+         species = as.factor(species),
+         species = factor(species, levels = c("brassica","bromus","salvia", "encelia")),
+         Sp_ate = factor(Sp_ate, levels = c("mixed_bird", "CA_Towee", "scrub_jay", "Stellar_Jay", "WC_sparrow", "ant", "multipred", "mixed_mammal", "woodrat", "GS")))
+
+species_stat <- site_species %>% 
+  group_by(species, Sp_ate) %>% 
+  summarize(mean = mean(index)) %>% 
+  filter(Sp_ate == "mixed_bird"| Sp_ate =="CA_Towee"|Sp_ate =="ant"| Sp_ate =="multipred" )
+
+site_species %>% 
+  group_by(species) %>% 
+  ggplot(aes(species, index))+
+  geom_point()+
+  geom_hline(yintercept=0.25,linetype="dashed", color = "black", size = .5)+
+  expand_limits(y = c(0, 1))+
+  facet_wrap(~Sp_ate, labeller = labeller(Sp_ate = labels), ncol = 5)+
+  labs(y= "Manly-\u03B1 Preference Index", x = "", title = "Species/Taxa Specific Preference")+
+  theme(axis.text.x=element_text(angle=50, hjust=1)) +
+  geom_point(data = species_stat, aes(y = mean, x = species), shape = 95, size = 10, color = "#8D8680")+
+  scale_x_discrete(labels = c("Brassica","Bromus","Salvia", "Encelia"))+ #just changes names
+  theme(axis.text.x = element_text(face = "italic"))
+#ggsave("specices_preference_Sept10.png", width = 7, height = 5 )
+  
+```
+
+
+Now to work on the community graph...
+
+Do non-granivore species need to be taken out? Yep
+
+```{r}
+# take out non-granivore species
+species2 <- species[-c(5, 18, 21, 26, 34, 35, 36)]
+  
+```
+
+Pivot longer:
+
+```{r}
+species2 <- species
+species2[species2 == 0] <- NA
+#species_n <- species2 %>% 
+ # select(-c(Site, Days_Out)) %>% 
+#  summarize_all(n, na.rm = TRUE)
+species3 <- species2 %>% 
+  summarize_if(is.numeric, sum, na.rm=TRUE) # add up all of the observations
+  
+species3 <- species3 %>% 
+  pivot_longer(cols = -c(Site, Days_Out), values_to = "number" , names_to = c("species", "type"), names_sep = "_") 
+species3[is.na(species3)] <- 0
+  
+species4 <- species3 %>% 
+  pivot_wider(names_from = "type", values_from = "number") %>% 
+  select(-c(Site, Days_Out)) 
+species4[is.na(species4)] <- 0
+species4 <- species4%>% 
+  group_by(species) %>% 
+  mutate(ratio = Eat/(Visit+Eat))
+#write.csv(species4, "species2.csv", row.names = F)
+#write.csv(species2, "species_persite.csv", row.names = F)
+
+#present <- species %>% 
+  #select(-c(Site, Days_Out, Run, Sp_ate))
+  #pivot_longer(cols = -c(Site, Days_Out), values_to = "number" , names_to = c("species", "type"), names_sep = "_") %>% 
+ # pivot_wider(names_from = "type", values_from = "number") 
+  
+  
+            
+```
+
+Graph that we won't use:
+```{r}
+species3 %>% 
+  group_by(species, type) %>% 
+  ggplot(aes(species, number, fill = type))+
+  geom_bar(stat = "identity", position = "dodge")+
+  theme(axis.text.x=element_text(angle=50, hjust=1),legend.title = element_blank())+
+  labs(x= "", y = "Total number of observations", main = "")+
+  scale_fill_manual(values=cav[2:3])
+#ggsave("visits_Aug31.jpeg", width = 10, height = 7)
+
+species4 %>% 
+  group_by(species) %>% 
+  ggplot(aes(species, ratio))+
+  geom_bar(stat = "identity", position = "dodge")+
+  theme(axis.text.x=element_text(angle=50, hjust=1))
+```
+
+Let's make a table instead!
+Using new gt package
+
+Need number of sites each each was observed at:
+
+```{r}
+table <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/species_table.csv")
+```
+
+```{r}
+table <- table %>% arrange(taxa, SciName) %>% select(-taxa)
+tbl <- gt(data = table)
+tbl
+tbl1 <- tbl %>% 
+  tab_row_group(group = "Bird", rows = 1:12) %>% 
+  tab_row_group(group = "Rodent", rows = 14:18) %>% 
+  tab_row_group(group = "Lagomorph", rows = 13) %>% 
+  row_group_order(groups = c("Bird", "Rodent", "Lagomorph")) %>% 
+  tab_stubhead(label = "Group") %>% 
+  tab_spanner(label = "Type of Observtion", columns = vars(Eat, Visit)) %>% 
+  fmt_number(column = vars(ratio), decimals = 2) %>% 
+  cols_label(SciName = "Scientific Name", CommonName = "Common Name", Eat = "Seed Predation", ratio = "Ratio of predation events to total events", SitesPresent = "Number of sites with at least one observation") %>% 
+  tab_style(style = cell_text(style = "italic"), locations = cells_body(columns = vars(SciName))) %>% 
+  fmt_missing(columns = 1:2, missing_text = "---") %>% 
+  cols_align(align = "auto")
+tbl1
+#webshot::install_phantomjs()
+#tbl1 %>% gtsave("fig3_Sept10.png")
+```
+
