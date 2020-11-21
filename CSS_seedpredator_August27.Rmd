@@ -23,29 +23,33 @@ info <- data.frame(species = c("salvia", "encelia", "brassica", "bromus"),
 ```
 
 Which sites to drop:
-- sites where more than 5 seeds were missing from Exclusion
-- treatment sites where less than 10 or more than 70 seeds taken
-- treatment sites where seeds taken are less than 10 different from Exclusion
+- sites where more than 5 seeds were missing from Exclusion dish
+- sites where less than 10 or more than 70 seeds taken
+- sites where seeds taken are less than 10 different from Exclusion
 
-Taking out sites:
+Dropping sites with more than 5 seeds missing from Exclusion dish
 
 ```{r}
+# Selecting exclusion sites with 5 or less seeds missing, there are 94
 exc <- seed %>% 
    filter(Treatment == "C") %>% 
-  filter(Total_eaten <=4)
-GPS_C <- exc %>% 
+  filter(Total_eaten <=5)
+# get unique ID for those sites:
+exc_codes <- exc %>% 
   select(GPS_code)
-seed3 <- semi_join(seed, GPS_C) #only sites withe <= 4 seeds missing from control
+# add back the rest of the data
+seed <- semi_join(seed, exc_codes) #seed 3 = without those Exc sites
 
-BR <- seed3 %>% 
+# BR and A only sites with seed eaten no. between 10 and 70
+BR <- seed %>% 
   filter(Treatment == "BR+") %>% 
-  filter(Total_eaten  %in% (10:70)) #BR only sites with seed eaten no. between 10 and 70
+  filter(Total_eaten  %in% (10:70)) 
 
-A <- seed3 %>% 
+A <- seed %>% 
   filter(Treatment == "A+") %>% 
   filter(Total_eaten  %in% (10:70))
 ABR <- rbind(BR, A)
-
+# ABR: These are the sites we're keeping.
 
 # do any of these sites have <10 differnece with control?
 GPS <- ABR %>% 
@@ -54,29 +58,57 @@ GPS <- ABR %>%
 GPS <- semi_join(exc, GPS) #control sites for each site that meet criteria
 
 ABR <- rbind(GPS, ABR)
-
+ABR2 <- ABR
 #one site has a too small seed difference between C and trt:
 
 ABR <- ABR %>% 
   filter(GPS_code != "JL_Feb15_S2") %>% 
   arrange(GPS_code, Treatment)
-#ABR has all of the sites that we're including!
 
-Global_final <- ABR %>% 
-  filter(Treatment != "C")
 
-#do those 6 sites mean anything?
-# unclick these if you want to include them!!
-Global_final <- Global_final %>% 
+# These are the sites that do not have camera data: let's exclude them from the analyses (unclick these if you want to include them)
+
+ABR <- ABR %>% 
   filter(GPS_code != "May22_S2") %>% 
   filter(GPS_code != "Nov5_S4") %>% 
   filter(GPS_code != "Oct10_S1") %>% 
   filter(GPS_code != "Sep17_S4") %>% 
   filter(GPS_code != "Ap23_S2") %>% 
-  filter(GPS_code != "Ap23+S4")
+  filter(GPS_code != "Ap23_S4")
 
-
+#ABR has all of the sites that we're including!
+Global_final <- ABR %>% 
+  filter(Treatment != "C")
 ```
+
+
+Creating histograms of seeds missing for appendix (before sites are taken out?):
+
+```{r}
+#Changing label names for fact wrap
+treatment_names <- c("BR+" = "Bird and Rodent",
+                     "A+" = "Ant",
+                     "C" = "Exclusion")
+
+seed %>% 
+  ggplot(aes(x = Total_eaten, fill = Treatment))+
+  geom_histogram(binwidth=5, color = "black")+
+  facet_wrap(~Treatment, labeller = as_labeller(treatment_names))+
+  scale_fill_grey(start=0.6, end=0.2) +
+  theme(legend.position = "none")+
+  labs(x = "Total number of seeds removed at each site", y = "Count")
+
+#ggsave("figures/histogram.png", width = 8, height = 4)
+# Histogram of cleaned data:
+#ABR2 %>% 
+  #ggplot(aes(x = Total_eaten, fill=Treatment))+
+  #geom_histogram(binwidth=5)+
+  #facet_wrap(~Treatment, labeller = as_labeller(treatment_names))+
+  #scale_fill_grey()+
+  #theme(legend.position = "none")+
+  #labs(x = "Total number of seeds removed at end of experiment", y = "Count")
+```
+
 
 
 creating Manly alpha indices:
@@ -121,7 +153,7 @@ Global_final <- Global_final %>%
   pivot_longer(cols = c(salvia:brassica), names_to = "species", values_to = "index")
 ```
 
-Does Bormus differ from 0.25? yep
+Does Bromus differ from 0.25? yep
 ```{r}
 bromus <- Global_final %>% 
   filter(species == "bromus") %>% 
@@ -166,16 +198,18 @@ Global_sum %>%
   geom_col(aes(fill = size), width = .95, color = "black")+
   #geom_point(data = Global_final, aes(species, index))+
   scale_fill_manual(values=c("#D9D0D3", "#8D8680"), guide = guide_legend(reverse=TRUE))+
-  geom_hline(aes(linetype = "Prefernce Threshold"), yintercept=0.25,linetype="dashed", color = "black", size = .8)+
+  geom_hline(aes(linetype = "Preference Threshold"), yintercept=0.25,linetype="dashed", color = "black", size = .8)+
   #scale_linetype_manual(name = "", values = c(1, 1), guide = guide_legend(override.aes = "black"))+
   geom_errorbar(aes(ymin = lower.ci, ymax = upper.ci), width = 0.2)+
   expand_limits(y = c(0, 1))+
-  labs(y= "Manly-\u03B1 Preference Index", title = "Global preference (n = 50, no ID sites taken out), 95% CI", x = "", fill = "Seed Size")+
+  labs(y= "Manly-\u03B1 Preference Index", x = "", fill = "Seed Size")+
   facet_grid(.~origin, scales = "free", switch = "x", space = "free")+
    theme(strip.placement = "outside", 
          legend.position = c(0.87, 0.87),
          axis.text.x = element_text(face = "italic"))
-#ggsave("global_manly_withoutsites_Sep10.png", width = 4, height = 5)
+#ggsave("figures/GlobalManly.png", width = 7, height = 5)
+
+# n = 50
 ```
 
 
@@ -223,7 +257,7 @@ species specific plot:
 try dot plot next
 
 ```{r}
-labels <- c(ant = "Ant", CA_Towee = "CA Towhee", GS = "Ground Squirrel", mixed_bird = "Multiple Bird", mixed_mammal = "Multiple Mammal", multipred = "Multiple Taxa", none = "No Visits", scrub_jay = "Scrub Jay", Stellar_Jay = "Stellar Jay", WC_sparrow = "WC Sparrow", woodrat = "Woodrat")
+labels <- c(ant = "Ant", CA_Towee = "California Towhee", GS = "Ground Squirrel", mixed_bird = "Multiple Bird", mixed_mammal = "Multiple Mammal", multipred = "Multiple Taxa", none = "No Visits", scrub_jay = "Scrub Jay", Stellar_Jay = "Stellar Jay", WC_sparrow = "White Crowned Sparrow", woodrat = "Woodrat")
 
 site_species <- site_species %>% 
   filter(Sp_ate != "none") %>%
@@ -244,12 +278,12 @@ site_species %>%
   geom_hline(yintercept=0.25,linetype="dashed", color = "black", size = .5)+
   expand_limits(y = c(0, 1))+
   facet_wrap(~Sp_ate, labeller = labeller(Sp_ate = labels), ncol = 5)+
-  labs(y= "Manly-\u03B1 Preference Index", x = "", title = "Species/Taxa Specific Preference")+
+  labs(y= "Manly-\u03B1 Preference Index", x = "")+
   theme(axis.text.x=element_text(angle=50, hjust=1)) +
   geom_point(data = species_stat, aes(y = mean, x = species), shape = 95, size = 10, color = "#8D8680")+
   scale_x_discrete(labels = c("Brassica","Bromus","Salvia", "Encelia"))+ #just changes names
   theme(axis.text.x = element_text(face = "italic"))
-#ggsave("specices_preference_Sept10.png", width = 7, height = 5 )
+#ggsave("figures/specices_preference.png", width = 7, height = 5 )
   
 ```
 
@@ -343,6 +377,6 @@ tbl1 <- tbl %>%
   cols_align(align = "auto")
 tbl1
 #webshot::install_phantomjs()
-#tbl1 %>% gtsave("fig3_Sept10.png")
+#tbl1 %>% gtsave("figures/fig3_Sept10.png")
 ```
 
