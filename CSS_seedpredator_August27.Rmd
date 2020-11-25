@@ -30,10 +30,12 @@ Which sites to drop:
 Dropping sites with more than 5 seeds missing from Exclusion dish
 
 ```{r}
-# Selecting exclusion sites with 5 or less seeds missing, there are 94
+# Selecting exclusion dishes with 5 or less seeds missing, there are 94
 exc <- seed %>% 
-   filter(Treatment == "C") %>% 
-  filter(Total_eaten <=5)
+   filter(Treatment == "C") #101 observations
+exc <- exc%>%
+  filter(Total_eaten <=5) #94 observations
+
 # get unique ID for those sites:
 exc_codes <- exc %>% 
   select(GPS_code)
@@ -257,7 +259,7 @@ species specific plot:
 try dot plot next
 
 ```{r}
-labels <- c(ant = "Ant", CA_Towee = "California Towhee", GS = "Ground Squirrel", mixed_bird = "Multiple Bird", mixed_mammal = "Multiple Mammal", multipred = "Multiple Taxa", none = "No Visits", scrub_jay = "Scrub Jay", Stellar_Jay = "Stellar Jay", WC_sparrow = "White Crowned Sparrow", woodrat = "Woodrat")
+labels <- c(ant = "Ant", CA_Towee = "California Towhee", GS = "Ground Squirrel", mixed_bird = "Multiple Birds", mixed_mammal = "Multiple Mammals", multipred = "Multiple Guilds", none = "No Visits", scrub_jay = "Scrub Jay", Stellar_Jay = "Stellar Jay", WC_sparrow = "WC Sparrow", woodrat = "Woodrat")
 
 site_species <- site_species %>% 
   filter(Sp_ate != "none") %>%
@@ -288,7 +290,7 @@ site_species %>%
 ```
 
 
-Now to work on the community graph...
+Now onto the community graph...
 
 Do non-granivore species need to be taken out? Yep
 
