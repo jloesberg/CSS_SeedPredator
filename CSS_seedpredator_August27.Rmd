@@ -32,7 +32,9 @@ Dropping sites with more than 5 seeds missing from Exclusion dish
 ```{r}
 # Selecting exclusion dishes with 5 or less seeds missing, there are 94
 exc <- seed %>% 
-   filter(Treatment == "C") #101 observations
+   filter(Treatment == "C") %>%  #101 observations
+  
+
 exc <- exc%>%
   filter(Total_eaten <=5) #94 observations
 
@@ -68,7 +70,7 @@ ABR <- ABR %>%
   arrange(GPS_code, Treatment)
 
 
-# These are the sites that do not have camera data: let's exclude them from the analyses (unclick these if you want to include them)
+# These are the sites that do not have camera data: let's exclude them from the analyses
 
 ABR <- ABR %>% 
   filter(GPS_code != "May22_S2") %>% 
@@ -78,13 +80,13 @@ ABR <- ABR %>%
   filter(GPS_code != "Ap23_S2") %>% 
   filter(GPS_code != "Ap23_S4")
 
-#ABR has all of the sites that we're including!
+#ABR has all of the sites that we're including! Now getting just A and BR
 Global_final <- ABR %>% 
   filter(Treatment != "C")
 ```
 
 
-Creating histograms of seeds missing for appendix (before sites are taken out?):
+Creating histograms of seeds missing for appendix (before sites are taken out):
 
 ```{r}
 #Changing label names for fact wrap
@@ -101,6 +103,7 @@ seed %>%
   labs(x = "Total number of seeds removed at each site", y = "Count")
 
 #ggsave("figures/histogram.png", width = 8, height = 4)
+
 # Histogram of cleaned data:
 #ABR2 %>% 
   #ggplot(aes(x = Total_eaten, fill=Treatment))+
@@ -155,16 +158,28 @@ Global_final <- Global_final %>%
   pivot_longer(cols = c(salvia:brassica), names_to = "species", values_to = "index")
 ```
 
-Does Bromus differ from 0.25? yep
+T-tests for each seed species. Are the true means different from 0.25?
 ```{r}
 bromus <- Global_final %>% 
   filter(species == "bromus") %>% 
   select(index)
 t.test(bromus, mu = 0.25)
+brassica <- Global_final %>% 
+  filter(species == "brassica") %>% 
+  select(index)
+t.test(brassica, mu = 0.25)
+salvia <- Global_final %>% 
+  filter(species == "salvia") %>% 
+  select(index)
+t.test(salvia, mu = 0.25)
+encelia <- Global_final %>% 
+  filter(species == "encelia") %>% 
+  select(index)
+t.test(encelia, mu = 0.25)
 ```
 
 
-Get all of the stats:
+Confidence intervals for graph:
 ```{r}
 BR_sum <- BR_final %>% 
   group_by(species) %>% 
@@ -216,18 +231,8 @@ Global_sum %>%
 
 
 
-Are the confidence intervals I calculated the same as if I used a one sample t-test?
-```{r}
-bras <- Global_final %>% 
-  filter(species == "brassica") %>% 
-  select(index)
-t.test(bras, mu = 0.25)
 
-```
-Yes, they're the same!
-
-
-```{r}
+```{r, include= F}
 A_sum %>% 
   ggplot(aes(species, mean))+
   geom_col()+
@@ -247,6 +252,8 @@ BR_sum %>%
 #ggsave("BR_manly_Aug18.png", width = 10, height = 7)
 ```
 
+Add in the granivore species information from the camera:
+
 ```{r}
 site_species <- species %>% 
   select(c(Run, GPS_code, Site, Sp_ate))
@@ -256,7 +263,7 @@ site_species$Sp_ate <- ifelse(site_species$Treatment == "A+", "ant", site_specie
 ```
 
 species specific plot:
-try dot plot next
+
 
 ```{r}
 labels <- c(ant = "Ant", CA_Towee = "California Towhee", GS = "Ground Squirrel", mixed_bird = "Multiple Birds", mixed_mammal = "Multiple Mammals", multipred = "Multiple Guilds", none = "No Visits", scrub_jay = "Scrub Jay", Stellar_Jay = "Stellar Jay", WC_sparrow = "WC Sparrow", woodrat = "Woodrat")
@@ -289,7 +296,110 @@ site_species %>%
   
 ```
 
+One sample t-tests for all of those means:
 
+- Multiple birds:
+```{r}
+mult_birds_seeds <- site_species %>% 
+  filter(Sp_ate == "mixed_bird")
+
+MBbird_bromus <- mult_birds_seeds %>% 
+  filter(species == "bromus") %>% 
+  select(index)
+t.test(MBbird_bromus, mu = 0.25)
+
+MBbird_brassica <- mult_birds_seeds %>% 
+  filter(species == "brassica") %>% 
+  select(index)
+t.test(MBbird_brassica, mu = 0.25)
+
+MBbird_salvia <- mult_birds_seeds %>% 
+  filter(species == "salvia") %>% 
+  select(index)
+t.test(MBbird_salvia, mu = 0.25)
+
+MBbird_encelia <- mult_birds_seeds %>% 
+  filter(species == "encelia") %>% 
+  select(index)
+t.test(MBbird_encelia, mu = 0.25)
+```
+
+- towhee:
+```{r}
+towhee_seeds <- site_species %>% 
+  filter(Sp_ate == "CA_Towee")
+
+towhee_bromus <- towhee_seeds %>% 
+  filter(species == "bromus") %>% 
+  select(index)
+t.test(towhee_bromus, mu = 0.25)
+
+towhee_brassica <- towhee_seeds %>% 
+  filter(species == "brassica") %>% 
+  select(index)
+t.test(towhee_brassica, mu = 0.25)
+
+towhee_salvia <- towhee_seeds %>% 
+  filter(species == "salvia") %>% 
+  select(index)
+t.test(towhee_salvia, mu = 0.25)
+
+towhee_encelia <- towhee_seeds %>% 
+  filter(species == "encelia") %>% 
+  select(index)
+t.test(towhee_encelia, mu = 0.25)
+```
+
+- ant:
+```{r}
+ant_seeds <- site_species %>% 
+  filter(Sp_ate == "ant")
+
+ant_bromus <- ant_seeds %>% 
+  filter(species == "bromus") %>% 
+  select(index)
+t.test(ant_bromus, mu = 0.25)
+
+ant_brassica <- ant_seeds %>% 
+  filter(species == "brassica") %>% 
+  select(index)
+t.test(ant_brassica, mu = 0.25)
+
+ant_salvia <- ant_seeds %>% 
+  filter(species == "salvia") %>% 
+  select(index)
+t.test(ant_salvia, mu = 0.25)
+
+ant_encelia <- ant_seeds %>% 
+  filter(species == "encelia") %>% 
+  select(index)
+t.test(ant_encelia, mu = 0.25)
+```
+- Multiple taxa:
+```{r}
+mult_taxa_seeds <- site_species %>% 
+  filter(Sp_ate == "multipred")
+
+mult_taxa_bromus <- mult_taxa_seeds %>% 
+  filter(species == "bromus") %>% 
+  select(index)
+t.test(mult_taxa_bromus, mu = 0.25)
+
+mult_taxa_brassica <- mult_taxa_seeds %>% 
+  filter(species == "brassica") %>% 
+  select(index)
+t.test(mult_taxa_brassica, mu = 0.25)
+
+mult_taxa_salvia <- mult_taxa_seeds %>% 
+  filter(species == "salvia") %>% 
+  select(index)
+t.test(mult_taxa_salvia, mu = 0.25)
+
+mult_taxa_encelia <- mult_taxa_seeds %>% 
+  filter(species == "encelia") %>% 
+  select(index)
+t.test(mult_taxa_encelia, mu = 0.25)
+```
 Now onto the community graph...
 
 Do non-granivore species need to be taken out? Yep
