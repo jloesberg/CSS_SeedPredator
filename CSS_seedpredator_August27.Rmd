@@ -15,7 +15,7 @@ fox <- wes_palettes$FantasticFox1
 cav <- wes_palettes$Cavalcanti1
 theme_set(theme_classic())
 seed <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_counts_July17.csv") #this has problem sites taken out
-species <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_data_species.csv") #without broken sites
+species <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_data_species.csv") # without broken sites
 #creating info to add to final data
 info <- data.frame(species = c("salvia", "encelia", "brassica", "bromus"),
                    size = c("Small", "Large", "Small", "Large"),
@@ -32,10 +32,10 @@ Dropping sites with more than 5 seeds missing from Exclusion dish
 ```{r}
 # Selecting exclusion dishes with 5 or less seeds missing, there are 94
 exc <- seed %>% 
-   filter(Treatment == "C") %>%  #101 observations
+   filter(Treatment == "C")  #101 observations
   
 
-exc <- exc%>%
+exc <- exc %>%
   filter(Total_eaten <=5) #94 observations
 
 # get unique ID for those sites:
@@ -44,14 +44,14 @@ exc_codes <- exc %>%
 # add back the rest of the data
 seed <- semi_join(seed, exc_codes) #seed 3 = without those Exc sites
 
-# BR and A only sites with seed eaten no. between 10 and 70
+# BR and A only dishes with seed eaten no. between 10 and 70
 BR <- seed %>% 
-  filter(Treatment == "BR+") %>% 
-  filter(Total_eaten  %in% (10:70)) 
+  filter(Treatment == "BR+") %>% #88 dishes
+  filter(Total_eaten  %in% (10:70)) #52 dishes
 
 A <- seed %>% 
-  filter(Treatment == "A+") %>% 
-  filter(Total_eaten  %in% (10:70))
+  filter(Treatment == "A+") #%>% #90 dishes
+  filter(Total_eaten  %in% (10:70)) #5 dishes
 ABR <- rbind(BR, A)
 # ABR: These are the sites we're keeping.
 
@@ -266,14 +266,14 @@ species specific plot:
 
 
 ```{r}
-labels <- c(ant = "Ant", CA_Towee = "California Towhee", GS = "Ground Squirrel", mixed_bird = "Multiple Birds", mixed_mammal = "Multiple Mammals", multipred = "Multiple Guilds", none = "No Visits", scrub_jay = "Scrub Jay", Stellar_Jay = "Stellar Jay", WC_sparrow = "WC Sparrow", woodrat = "Woodrat")
+labels <- c(ant = "Ant", CA_Towee = "California Towhee", GS = "Ground Squirrel", mixed_bird = "Multiple Birds", mixed_mammal = "Multiple Mammals", multipred = "Multiple Guilds", none = "No Visits", scrub_jay = "Scrub Jay", WC_sparrow = "WC Sparrow", woodrat = "Woodrat")
 
 site_species <- site_species %>% 
   filter(Sp_ate != "none") %>%
   mutate(Sp_ate = as.factor(Sp_ate),
          species = as.factor(species),
          species = factor(species, levels = c("brassica","bromus","salvia", "encelia")),
-         Sp_ate = factor(Sp_ate, levels = c("mixed_bird", "CA_Towee", "scrub_jay", "Stellar_Jay", "WC_sparrow", "ant", "multipred", "mixed_mammal", "woodrat", "GS")))
+         Sp_ate = factor(Sp_ate, levels = c("mixed_bird", "CA_Towee", "scrub_jay", "WC_sparrow", "ant", "multipred", "mixed_mammal", "woodrat", "GS")))
 
 species_stat <- site_species %>% 
   group_by(species, Sp_ate) %>% 
@@ -286,13 +286,13 @@ site_species %>%
   geom_point()+
   geom_hline(yintercept=0.25,linetype="dashed", color = "black", size = .5)+
   expand_limits(y = c(0, 1))+
-  facet_wrap(~Sp_ate, labeller = labeller(Sp_ate = labels), ncol = 5)+
+  facet_wrap(~Sp_ate, labeller = labeller(Sp_ate = labels), ncol = 3)+
   labs(y= "Manly-\u03B1 Preference Index", x = "")+
   theme(axis.text.x=element_text(angle=50, hjust=1)) +
   geom_point(data = species_stat, aes(y = mean, x = species), shape = 95, size = 10, color = "#8D8680")+
   scale_x_discrete(labels = c("Brassica","Bromus","Salvia", "Encelia"))+ #just changes names
   theme(axis.text.x = element_text(face = "italic"))
-#ggsave("figures/specices_preference.png", width = 7, height = 5 )
+#ggsave("figures/specices_preference_1.png", width = 7, height = 6 )
   
 ```
 
@@ -400,6 +400,8 @@ mult_taxa_encelia <- mult_taxa_seeds %>%
   select(index)
 t.test(mult_taxa_encelia, mu = 0.25)
 ```
+
+
 Now onto the community graph...
 
 Do non-granivore species need to be taken out? Yep
@@ -410,7 +412,7 @@ species2 <- species[-c(5, 18, 21, 26, 34, 35, 36)]
   
 ```
 
-Pivot longer:
+Changing the dataframe into a useable format:
 
 ```{r}
 species2 <- species
@@ -462,8 +464,7 @@ species4 %>%
   theme(axis.text.x=element_text(angle=50, hjust=1))
 ```
 
-Let's make a table instead!
-Using new gt package
+Let's make a table instead using new gt package
 
 Need number of sites each each was observed at:
 
@@ -473,6 +474,11 @@ table <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/s
 
 ```{r}
 table <- table %>% arrange(taxa, SciName) %>% select(-taxa)
+# make all column integers so they are centered in table:
+#table$Eat <- as.numeric(table$Eat)
+#table$Visit <- as.numeric(table$Visit)
+#table$SitesPresent <- as.numeric(table$SitesPresent)
+
 tbl <- gt(data = table)
 tbl
 tbl1 <- tbl %>% 
@@ -483,12 +489,15 @@ tbl1 <- tbl %>%
   tab_stubhead(label = "Group") %>% 
   tab_spanner(label = "Type of Observtion", columns = vars(Eat, Visit)) %>% 
   fmt_number(column = vars(ratio), decimals = 2) %>% 
-  cols_label(SciName = "Scientific Name", CommonName = "Common Name", Eat = "Seed Predation", ratio = "Ratio of predation events to total events", SitesPresent = "Number of sites with at least one observation") %>% 
+  cols_label(SciName = "Scientific Name", CommonName = "Common Name", Eat = "Seed Predation", ratio = "Ratio of predation events to total events", SitesPresent = "Sites with at least one observation") %>% 
   tab_style(style = cell_text(style = "italic"), locations = cells_body(columns = vars(SciName))) %>% 
   fmt_missing(columns = 1:2, missing_text = "---") %>% 
-  cols_align(align = "auto")
+  cols_align(align = "center") %>% 
+  cols_width(everything() ~ px(90)) %>% 
+  cols_width(ends_with("Name") ~ px(150))
+  
 tbl1
 #webshot::install_phantomjs()
-#tbl1 %>% gtsave("figures/fig3_Sept10.png")
+#tbl1 %>% gtsave("figures/fig3_Feb18.png")
 ```
 
