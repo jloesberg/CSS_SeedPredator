@@ -5,14 +5,17 @@ date: "3/16/2021"
 output: html_document
 ---
 
+Data analysis for CSS paper:
+
 ```{r, warning=FALSE,echo=FALSE, include = FALSE, message = FALSE}
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(gt))
 suppressPackageStartupMessages(library(webshot))
 
 theme_set(theme_classic())
-seed <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_counts_July17.csv") #this has problem sites taken out
-species <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_data_species.csv") # without broken sites
+seed <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_counts_July17.csv") #this has destroyed sites taken out
+species <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_data_species.csv") # without broken camera sites
+
 #creating info to add to final data
 info <- data.frame(species = c("salvia", "encelia", "brassica", "bromus"),
                    size = c("Small", "Large", "Small", "Large"),
@@ -390,7 +393,6 @@ mult_taxa_encelia <- mult_taxa_seeds %>%
 t.test(mult_taxa_encelia, mu = 0.25)
 ```
 
-
 Now onto the community graph...
 
 Do non-granivore species need to be taken out? Yep
@@ -431,6 +433,8 @@ Need number of sites each each was observed at:
 ```{r}
 table <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/species_table.csv")
 ```
+
+Formatted table:
 
 ```{r}
 table <- table %>% arrange(taxa, SciName) %>% select(-taxa)
