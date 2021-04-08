@@ -2,7 +2,9 @@
 title: "CSS Seed Predator"
 author: "Jenna Loesberg"
 date: "3/16/2021"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 Data analysis for CSS paper:
@@ -85,7 +87,7 @@ Global_final <- ABR %>%
 ```
 
 
-Creating histograms of seeds missing for appendix (before sites are taken out):
+Creating histograms of seeds missing for appendix (before sites are cleaned for preference analysis):
 
 ```{r}
 #Changing label names for fact wrap
@@ -103,8 +105,6 @@ seed %>%
 
 #ggsave("figures/histogram.png", width = 8, height = 4)
 ```
-
-
 
 creating Manly alpha indices:
 ```{r}
