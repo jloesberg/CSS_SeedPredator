@@ -1,0 +1,19 @@
+taxa,SciName,CommonName,Eat,Visit,ratio,SitesPresent
+Bird,Melozone crissalis,California Towhee,173,204,0.458885942,68
+Bird,Toxostoma redivivum,California Thrasher,17,58,0.226666667,34
+Bird,Zonotrichia leucophrys,White Crowned Sparrow,34,120,0.220779221,22
+Lagomorph,Sylivagus audubonii,Desert Cottontail,7,373,0.018421053,66
+Bird,Aphelocoma californica,Scrub Jay,11,16,0.407407407,15
+Rodent,Otospermophilus beecheyi,Ground Squirrel,9,246,0.035294118,9
+Bird,Pipilo maculatus,Spotted Towhee,1,7,0.125,7
+Bird,Callipepla californica,Quail,0,21,0,9
+Rodent,Dipodomys californicus,Kangaroo Rat,6,62,0.088235294,17
+Bird,NA,Unidentified Bird,0,3,0,3
+Rodent,Neotoma spp.,Wood Rat,27,183,0.128571429,29
+Bird,Haemorhous mexicanus,House Finch,0,4,0,2
+Rodent,Peromyscus spp.,Deer Mouse,3,31,0.088235294,14
+Bird,Zenaida macroura,Morning Dove,0,2,0,2
+Rodent,NA,Unidentified Rat,0,3,0,2
+Bird,Setophaga coronata,Yellow Rumped Warbler,1,0,1,1
+Bird,Catharus ustulatus,Swansons Thrush,0,29,0,3
+Bird,Mimus polyglottos,Mocking Bird,0,1,0,1
