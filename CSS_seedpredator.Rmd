@@ -15,8 +15,8 @@ suppressPackageStartupMessages(library(gt))
 suppressPackageStartupMessages(library(webshot))
 
 theme_set(theme_classic())
-seed <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_counts_July17.csv") #this has destroyed sites taken out
-species <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/Seed_data_species.csv") # without broken camera sites
+seed <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/CSS_seed_removal.csv") #this has major problem sites taken out
+species <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/CSS_granivore_spp.csv") # without broken camera sites
 
 #creating info to add to final data
 info <- data.frame(species = c("salvia", "encelia", "brassica", "bromus"),
@@ -87,7 +87,7 @@ Global_final <- ABR %>%
 ```
 
 
-Creating histograms of seeds missing for appendix (before sites are cleaned for preference analysis):
+Creating histograms of seeds missing for appendix (before trials are cleaned for preference analysis):
 
 ```{r}
 #Changing label names for fact wrap
@@ -110,7 +110,7 @@ creating Manly alpha indices:
 ```{r}
 Global_final["prey"] <- 20 #starting amount  = 20
 Global_final <- Global_final %>% 
-  mutate(salv.pro = salvia.left/prey, #proportion of starting amount
+  mutate(salv.pro = salvia_left/prey, #proportion of starting amount
          enc.pro = encelia_left/prey,
          brom.pro = bromus_left/prey,
          bras.pro = brassica_left/prey)
@@ -126,7 +126,7 @@ Global_final <- Global_final %>%
          bromus = log(brom.pro)/(log(salv.pro)+log(enc.pro)+log(brom.pro)+log(bras.pro)),
          brassica = log(bras.pro)/(log(salv.pro)+log(enc.pro)+log(brom.pro)+log(bras.pro)))
 
-#here I will split it up into A, BR and global
+# splitting into A, BR and global
 
 A_final <- Global_final %>% 
   filter(Treatment == "A+")
@@ -393,9 +393,7 @@ mult_taxa_encelia <- mult_taxa_seeds %>%
 t.test(mult_taxa_encelia, mu = 0.25)
 ```
 
-Now onto the community graph...
-
-Do non-granivore species need to be taken out? Yep
+Now onto the community table...
 
 ```{r}
 # take out non-granivore species
@@ -406,62 +404,24 @@ species2 <- species[-c(5, 18, 21, 26, 34, 35, 36)]
 Changing the dataframe into a useable format:
 
 ```{r}
-species2 <- species
-species2[species2 == 0] <- NA
-#species_n <- species2 %>% 
- # select(-c(Site, Days_Out)) %>% 
-#  summarize_all(n, na.rm = TRUE)
-species3 <- species2 %>% 
+
+species[species == 0] <- NA
+
+species <- species %>% 
   summarize_if(is.numeric, sum, na.rm=TRUE) # add up all of the observations
   
-species3 <- species3 %>% 
+species <- species %>% 
   pivot_longer(cols = -c(Site, Days_Out), values_to = "number" , names_to = c("species", "type"), names_sep = "_") 
-species3[is.na(species3)] <- 0
+species[is.na(species)] <- 0
   
-species4 <- species3 %>% 
+species <- species %>% 
   pivot_wider(names_from = "type", values_from = "number") %>% 
   select(-c(Site, Days_Out)) 
-species4[is.na(species4)] <- 0
-species4 <- species4%>% 
+species[is.na(species)] <- 0
+species <- species%>% 
   group_by(species) %>% 
   mutate(ratio = Eat/(Visit+Eat))
             
 ```
 
-Need number of sites each each was observed at:
-
-```{r}
-table <- read.csv("C:/Users/Jenna/Dropbox/Jenna/seed predator/CSS_SeedPredator/species_table.csv")
-```
-
-Formatted table:
-
-```{r}
-table <- table %>% arrange(taxa, SciName) %>% select(-taxa)
-# make all column integers so they are centered in table:
-#table$Eat <- as.numeric(table$Eat)
-#table$Visit <- as.numeric(table$Visit)
-#table$SitesPresent <- as.numeric(table$SitesPresent)
-
-tbl <- gt(data = table)
-tbl
-tbl1 <- tbl %>% 
-  tab_row_group(group = "Bird", rows = 1:12) %>% 
-  tab_row_group(group = "Rodent", rows = 14:18) %>% 
-  tab_row_group(group = "Lagomorph", rows = 13) %>% 
-  row_group_order(groups = c("Bird", "Rodent", "Lagomorph")) %>% 
-  tab_stubhead(label = "Group") %>% 
-  tab_spanner(label = "Type of Observtion", columns = vars(Eat, Visit)) %>% 
-  fmt_number(column = vars(ratio), decimals = 2) %>% 
-  cols_label(SciName = "Scientific Name", CommonName = "Common Name", Eat = "Seed Predation", ratio = "Ratio of predation events to total events", SitesPresent = "Sites with at least one observation") %>% 
-  tab_style(style = cell_text(style = "italic"), locations = cells_body(columns = vars(SciName))) %>% 
-  fmt_missing(columns = 1:2, missing_text = "---") %>% 
-  cols_align(align = "center") %>% 
-  cols_width(everything() ~ px(90)) %>% 
-  cols_width(ends_with("Name") ~ px(150))
-  
-tbl1
-
-#tbl1 %>% gtsave("figures/fig3_Feb18.png")
-```
 
