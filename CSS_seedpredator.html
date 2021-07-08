@@ -397,7 +397,7 @@ exc &lt;- exc %&gt;%
 exc_codes &lt;- exc %&gt;% 
   select(GPS_code)
 # add back the rest of the data
-seed &lt;- semi_join(seed, exc_codes) #seed 3 = without those Exc sites</code></pre>
+seed &lt;- semi_join(seed, exc_codes) #seed = without those Exc sites</code></pre>
 <pre><code>## Joining, by = &quot;GPS_code&quot;</code></pre>
 <pre class="r"><code># BR and A only dishes with seed eaten no. between 10 and 70
 BR &lt;- seed %&gt;% 
@@ -910,12 +910,12 @@ species &lt;- species %&gt;%
   summarize_if(is.numeric, sum, na.rm=TRUE) # add up all of the observations
   
 species &lt;- species %&gt;% 
-  pivot_longer(cols = -c(Site, Days_Out), values_to = &quot;number&quot; , names_to = c(&quot;species&quot;, &quot;type&quot;), names_sep = &quot;_&quot;) 
+  pivot_longer(cols = -c(Site), values_to = &quot;number&quot; , names_to = c(&quot;species&quot;, &quot;type&quot;), names_sep = &quot;_&quot;) 
 species[is.na(species)] &lt;- 0
   
 species &lt;- species %&gt;% 
   pivot_wider(names_from = &quot;type&quot;, values_from = &quot;number&quot;) %&gt;% 
-  select(-c(Site, Days_Out)) 
+  select(-c(Site)) 
 species[is.na(species)] &lt;- 0
 species &lt;- species%&gt;% 
   group_by(species) %&gt;% 

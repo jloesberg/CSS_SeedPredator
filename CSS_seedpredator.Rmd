@@ -43,7 +43,7 @@ exc <- exc %>%
 exc_codes <- exc %>% 
   select(GPS_code)
 # add back the rest of the data
-seed <- semi_join(seed, exc_codes) #seed 3 = without those Exc sites
+seed <- semi_join(seed, exc_codes) #seed = without those Exc sites
 
 # BR and A only dishes with seed eaten no. between 10 and 70
 BR <- seed %>% 
@@ -411,12 +411,12 @@ species <- species %>%
   summarize_if(is.numeric, sum, na.rm=TRUE) # add up all of the observations
   
 species <- species %>% 
-  pivot_longer(cols = -c(Site, Days_Out), values_to = "number" , names_to = c("species", "type"), names_sep = "_") 
+  pivot_longer(cols = -c(Site), values_to = "number" , names_to = c("species", "type"), names_sep = "_") 
 species[is.na(species)] <- 0
   
 species <- species %>% 
   pivot_wider(names_from = "type", values_from = "number") %>% 
-  select(-c(Site, Days_Out)) 
+  select(-c(Site)) 
 species[is.na(species)] <- 0
 species <- species%>% 
   group_by(species) %>% 
